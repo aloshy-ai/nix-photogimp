@@ -17,7 +17,7 @@
           ./nix/packages.nix
           ./nix/services.nix
           ./nix/users.nix
-          ./nix/virtualization.nix
+          ./nix/virtualisation.nix
         ];
       };
     };
