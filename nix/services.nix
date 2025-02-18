@@ -14,10 +14,4 @@
         openFirewall = true;  # Alternative way to open SSH port
     };
   };
-
-  virtualisation = {
-    docker = {
-      enable = true;
-    };
-  };
 }
