@@ -13,7 +13,7 @@
         system = "aarch64-linux";
         modules = [
           ./configuration.nix
-          ./nix/host.nix
+          ./nix/networking.nix
           ./nix/packages.nix
           ./nix/services.nix
           ./nix/users.nix
