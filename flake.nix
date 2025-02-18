@@ -18,6 +18,7 @@
           ./nix/services.nix
           ./nix/users.nix
           ./nix/virtualisation.nix
+          ./nix/config.nix
         ];
       };
     };
