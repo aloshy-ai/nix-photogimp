@@ -9,7 +9,7 @@
 
     # Add NixOS configuration
     nixosConfigurations = {
-      hostname = nixpkgs.lib.nixosSystem {
+      utmnix = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
         modules = [
           ./configuration.nix
