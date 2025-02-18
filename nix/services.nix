@@ -1,6 +1,5 @@
 { pkgs, ... }: {
   services = {
-    spice-vdagentd.enable = true;
     tailscale = {
       enable = true;
     };
