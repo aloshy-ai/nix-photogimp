@@ -12,6 +12,7 @@
       utmnix = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
         modules = [
+          "${nixpkgs}/nixos/modules/virtualisation/qemu-vm.nix"
           ./configuration.nix
           ./nix/networking.nix
           ./nix/packages.nix
