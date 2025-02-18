@@ -1,5 +1,5 @@
 {
-  description = "A very basic flake";
+  description = "NixOS configuration";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
@@ -7,9 +7,15 @@
 
   outputs = { self, nixpkgs }: {
 
-    packages.x86_64-linux.hello = nixpkgs.legacyPackages.x86_64-linux.hello;
-
-    packages.x86_64-linux.default = self.packages.x86_64-linux.hello;
+    # Add NixOS configuration
+    nixosConfigurations = {
+      hostname = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          ./configuration.nix
+        ];
+      };
+    };
 
   };
 }
