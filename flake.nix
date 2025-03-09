@@ -18,7 +18,7 @@
       owner = "Diolinux";
       repo = "PhotoGIMP";
       rev = "1.0";
-      sha256 = "0g076aa6jpmz4kxlwrw2zhbqirlj6y24vyl3g8jdl9qmkykm8z02";
+      sha256 = "sha256-l+P0B3qw96P7XH07bezcUL6HTMyEHTHQMJrqzgxcrFI=";
     };
 
     photoGimpSrc = pkgs.fetchFromGitHub photoGimpSrcInfo;
