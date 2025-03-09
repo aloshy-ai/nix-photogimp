@@ -7,7 +7,7 @@
     mac-app-util.url = "github:hraban/mac-app-util";
   };
 
-  outputs = { self, nixpkgs, flake-utils-plus, mac-app-util }:
+  outputs = { self, nixpkgs, flake-utils-plus, mac-app-util, ... }@inputs:
     let
       # Common configuration shared across systems
       photoGimpSrcInfo = {
@@ -24,7 +24,7 @@
       in "${photoGimpSrc}/.local/share/icons/hicolor/256x256/apps/photogimp.png";
     in
     flake-utils-plus.lib.mkFlake {
-      inherit self;
+      inherit self inputs;
       
       systems = [ "aarch64-darwin" "x86_64-darwin" ];
       
@@ -197,29 +197,32 @@
         };
 
       # Darwin Module
-      flakeModules.darwinModules.default = { pkgs, system, ... }: {
+      nixosModules.default = { pkgs, ... }: { };
+      
+      # Darwin Module
+      darwinModules.default = { pkgs, ... }: {
         imports = [ mac-app-util.darwinModules.default ];
         environment.systemPackages = [ 
-          (pkgs.callPackage ({ pkgs }: self.packages.${system}.photogimp) {})
+          (pkgs.callPackage ({ pkgs }: self.packages.${pkgs.system}.photogimp) {})
         ];
         system.activationScripts.postActivation.text = ''
           # Create PhotoGIMP app in /Applications
-          ${mac-app-util.packages.${system}.default}/bin/mktrampoline ${self.packages.${system}.photogimp}/bin/gimp /Applications/PhotoGIMP.app
-          cp ${getPhotoGimpIconPath system} /Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
+          ${mac-app-util.packages.${pkgs.system}.default}/bin/mktrampoline ${self.packages.${pkgs.system}.photogimp}/bin/gimp /Applications/PhotoGIMP.app
+          cp ${getPhotoGimpIconPath pkgs.system} /Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
         '';
       };
 
       # Home-manager Module
-      flakeModules.homeManagerModules.default = { pkgs, system, ... }: {
+      homeManagerModules.default = { pkgs, ... }: {
         imports = [ mac-app-util.homeManagerModules.default ];
         home.packages = [ 
-          (pkgs.callPackage ({ pkgs }: self.packages.${system}.photogimp) {})
+          (pkgs.callPackage ({ pkgs }: self.packages.${pkgs.system}.photogimp) {})
         ];
         home.activation.createPhotoGimpApp = ''
           # Create PhotoGIMP app in ~/Applications
           $DRY_RUN_CMD mkdir -p ~/Applications
-          $DRY_RUN_CMD ${mac-app-util.packages.${system}.default}/bin/mktrampoline ${self.packages.${system}.photogimp}/bin/gimp ~/Applications/PhotoGIMP.app
-          $DRY_RUN_CMD cp ${getPhotoGimpIconPath system} ~/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
+          $DRY_RUN_CMD ${mac-app-util.packages.${pkgs.system}.default}/bin/mktrampoline ${self.packages.${pkgs.system}.photogimp}/bin/gimp ~/Applications/PhotoGIMP.app
+          $DRY_RUN_CMD cp ${getPhotoGimpIconPath pkgs.system} ~/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
         '';
       };
     };
