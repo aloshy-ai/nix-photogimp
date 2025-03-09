@@ -210,7 +210,7 @@
           # Install PhotoGIMP.app
           cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
           # Fix permissions
-          chown -R $USER:staff ~/Applications/PhotoGIMP.app
+          chown -R "$USER":staff ~/Applications/PhotoGIMP.app
         '';
       };
     };
@@ -238,7 +238,7 @@
           # Install PhotoGIMP.app
           cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
           # Fix permissions
-          chown -R $(whoami):staff ~/Applications/PhotoGIMP.app
+          chown -R "$(whoami)":staff ~/Applications/PhotoGIMP.app
         '';
       };
     };
