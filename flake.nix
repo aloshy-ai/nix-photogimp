@@ -206,11 +206,11 @@
           # Ensure Applications directory exists
           mkdir -p ~/Applications
           # Remove existing PhotoGIMP.app if it exists
-          rm -rf ~/Applications/PhotoGIMP.app
+          sudo rm -rf ~/Applications/PhotoGIMP.app
           # Install PhotoGIMP.app
-          cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          sudo cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
           # Fix permissions
-          chown -R "$USER":staff ~/Applications/PhotoGIMP.app
+          sudo chown -R "$USER":staff ~/Applications/PhotoGIMP.app
         '';
       };
     };
@@ -234,11 +234,11 @@
           # Ensure Applications directory exists
           mkdir -p ~/Applications
           # Remove existing PhotoGIMP.app if it exists
-          rm -rf ~/Applications/PhotoGIMP.app
+          sudo rm -rf ~/Applications/PhotoGIMP.app
           # Install PhotoGIMP.app
-          cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          sudo cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
           # Fix permissions
-          chown -R "$(whoami)":staff ~/Applications/PhotoGIMP.app
+          sudo chown -R "$(whoami)":staff ~/Applications/PhotoGIMP.app
         '';
       };
     };
