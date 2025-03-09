@@ -241,6 +241,7 @@
       default = createPhotoGimpApp;
     };
 
+    nixosModules.default = darwinModule;
     darwinModules.default = darwinModule;
     homeManagerModules.default = homeManagerModule;
   };
