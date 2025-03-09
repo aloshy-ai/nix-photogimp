@@ -203,14 +203,12 @@
       config = lib.mkIf config.programs.photogimp.enable {
         environment.systemPackages = [photogimp];
         system.activationScripts.postActivation.text = ''
-          # Ensure Applications directory exists
-          mkdir -p ~/Applications
           # Remove existing PhotoGIMP.app if it exists
-          /bin/rm -rf ~/Applications/PhotoGIMP.app
+          /bin/rm -rf /Applications/PhotoGIMP.app
           # Install PhotoGIMP.app
-          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app /Applications/
           # Fix permissions
-          /usr/sbin/chown -R "$(/usr/bin/whoami):staff" ~/Applications/PhotoGIMP.app
+          /usr/sbin/chown -R "$(/usr/bin/whoami):staff" /Applications/PhotoGIMP.app
         '';
       };
     };
@@ -231,14 +229,12 @@
       config = lib.mkIf config.programs.photogimp.enable {
         home.packages = [photogimp];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
-          # Ensure Applications directory exists
-          mkdir -p ~/Applications
           # Remove existing PhotoGIMP.app if it exists
-          /bin/rm -rf ~/Applications/PhotoGIMP.app
+          /bin/rm -rf /Applications/PhotoGIMP.app
           # Install PhotoGIMP.app
-          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app /Applications/
           # Fix permissions
-          /usr/sbin/chown -R "$(/usr/bin/whoami):staff" ~/Applications/PhotoGIMP.app
+          /usr/sbin/chown -R "$(/usr/bin/whoami):staff" /Applications/PhotoGIMP.app
         '';
       };
     };
