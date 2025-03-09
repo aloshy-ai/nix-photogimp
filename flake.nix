@@ -149,16 +149,43 @@
     };
 
     # Create the app bundle
-    createPhotoGimpApp =
-      pkgs.runCommand "PhotoGIMP.app" {
-        nativeBuildInputs = [mac-app-util.packages.${system}.default];
-        buildInputs = [mac-app-util.packages.${system}.default];
-      } ''
-        export PATH=${mac-app-util.packages.${system}.default}/bin:$PATH
-        mkdir -p $out/Applications
-        mktrampoline ${photogimp}/bin/gimp $out/Applications/PhotoGIMP.app
-        cp ${photoGimpIcon}/icon.png $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
-      '';
+    createPhotoGimpApp = pkgs.runCommand "PhotoGIMP.app" {} ''
+      mkdir -p $out/Applications/PhotoGIMP.app/Contents/{MacOS,Resources}
+
+      # Create Info.plist
+      cat > $out/Applications/PhotoGIMP.app/Contents/Info.plist << EOF
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>CFBundleExecutable</key>
+        <string>PhotoGIMP</string>
+        <key>CFBundleIconFile</key>
+        <string>appIcon</string>
+        <key>CFBundleIdentifier</key>
+        <string>org.gimp.PhotoGIMP</string>
+        <key>CFBundleName</key>
+        <string>PhotoGIMP</string>
+        <key>CFBundlePackageType</key>
+        <string>APPL</string>
+        <key>CFBundleShortVersionString</key>
+        <string>1.0</string>
+        <key>LSMinimumSystemVersion</key>
+        <string>10.10.0</string>
+      </dict>
+      </plist>
+      EOF
+
+      # Create launcher script
+      cat > $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP << EOF
+      #!/bin/bash
+      exec ${photogimp}/bin/gimp "\$@"
+      EOF
+      chmod +x $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP
+
+      # Copy icon
+      cp ${photoGimpIcon}/icon.png $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
+    '';
   in {
     packages.${system} = {
       photogimp = photogimp;
