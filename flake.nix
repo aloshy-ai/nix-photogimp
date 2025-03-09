@@ -186,11 +186,62 @@
       # Copy icon
       cp ${photoGimpIcon}/icon.png $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
     '';
+
+    # Create Darwin module
+    darwinModule = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: {
+      options = {
+        programs.photogimp = {
+          enable = lib.mkEnableOption "PhotoGIMP";
+        };
+      };
+
+      config = lib.mkIf config.programs.photogimp.enable {
+        environment.systemPackages = [photogimp];
+        system.activationScripts.postActivation.text = ''
+          # Ensure Applications directory exists
+          mkdir -p ~/Applications
+          # Install PhotoGIMP.app
+          cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+        '';
+      };
+    };
+
+    # Create Home Manager module
+    homeManagerModule = {
+      config,
+      lib,
+      pkgs,
+      ...
+    }: {
+      options = {
+        programs.photogimp = {
+          enable = lib.mkEnableOption "PhotoGIMP";
+        };
+      };
+
+      config = lib.mkIf config.programs.photogimp.enable {
+        home.packages = [photogimp];
+        home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
+          # Ensure Applications directory exists
+          mkdir -p ~/Applications
+          # Install PhotoGIMP.app
+          cp -r ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+        '';
+      };
+    };
   in {
     packages.${system} = {
       photogimp = photogimp;
       photoGimpApp = createPhotoGimpApp;
       default = createPhotoGimpApp;
     };
+
+    darwinModules.default = darwinModule;
+    homeManagerModules.default = homeManagerModule;
   };
 }
