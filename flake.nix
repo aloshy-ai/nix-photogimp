@@ -205,8 +205,12 @@
         system.activationScripts.postActivation.text = ''
           # Ensure Applications directory exists
           mkdir -p ~/Applications
+          # Remove existing PhotoGIMP.app if it exists
+          /bin/rm -rf ~/Applications/PhotoGIMP.app
           # Install PhotoGIMP.app
-          cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          # Fix permissions
+          /usr/sbin/chown -R $(/usr/bin/whoami):staff ~/Applications/PhotoGIMP.app
         '';
       };
     };
@@ -229,8 +233,12 @@
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
           # Ensure Applications directory exists
           mkdir -p ~/Applications
+          # Remove existing PhotoGIMP.app if it exists
+          /bin/rm -rf ~/Applications/PhotoGIMP.app
           # Install PhotoGIMP.app
-          cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app ~/Applications/
+          # Fix permissions
+          /usr/sbin/chown -R $(/usr/bin/whoami):staff ~/Applications/PhotoGIMP.app
         '';
       };
     };
