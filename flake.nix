@@ -152,7 +152,9 @@
     createPhotoGimpApp =
       pkgs.runCommand "PhotoGIMP.app" {
         nativeBuildInputs = [mac-app-util.packages.${system}.default];
+        buildInputs = [mac-app-util.packages.${system}.default];
       } ''
+        export PATH=${mac-app-util.packages.${system}.default}/bin:$PATH
         mkdir -p $out/Applications
         mktrampoline ${photogimp}/bin/gimp $out/Applications/PhotoGIMP.app
         cp ${photoGimpIcon}/icon.png $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
