@@ -32,7 +32,7 @@
     # Get the icon
     photoGimpIcon = pkgs.runCommand "photogimp-icon" {} ''
       mkdir -p $out
-      cp ${photoGimpSrc}/.local/share/icons/hicolor/256x256/apps/photogimp.png $out/icon.png
+      cp ${photoGimpSrc}/.icons/photogimp.png $out/icon.png
     '';
 
     # Create wrapper script
