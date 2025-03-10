@@ -171,18 +171,11 @@
 
       config = lib.mkIf config.programs.photogimp.enable {
         environment.systemPackages = [photogimp];
-        system.activationScripts.installPhotoGIMP = {
-          text = ''
-            echo "Installing PhotoGIMP.app..."
-            # Remove existing app if it exists
-            rm -rf "/Applications/PhotoGIMP.app"
-            # Copy new app
-            cp -rf "${createPhotoGimpApp}/Applications/PhotoGIMP.app" "/Applications/"
-            # Fix permissions
-            chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
-          '';
-          deps = [];
-        };
+        system.build.applications = pkgs.lib.mkForce (pkgs.buildEnv {
+          name = "applications";
+          paths = [createPhotoGimpApp];
+          pathsToLink = ["/Applications"];
+        });
       };
     };
 
@@ -203,12 +196,10 @@
         home.packages = [photogimp];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
           echo "Installing PhotoGIMP.app..."
-          # Remove existing app if it exists
-          rm -rf "/Applications/PhotoGIMP.app"
-          # Copy new app
-          cp -rf "${createPhotoGimpApp}/Applications/PhotoGIMP.app" "/Applications/"
-          # Fix permissions
-          chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
+          if [ -e "/Applications/PhotoGIMP.app" ]; then
+            /usr/bin/osascript -e "do shell script \"rm -rf /Applications/PhotoGIMP.app\" with administrator privileges"
+          fi
+          /usr/bin/osascript -e "do shell script \"cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app /Applications/ && chown -R $USER:staff /Applications/PhotoGIMP.app\" with administrator privileges"
         '';
       };
     };
