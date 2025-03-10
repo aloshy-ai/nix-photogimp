@@ -205,9 +205,10 @@
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
           echo "Installing PhotoGIMP.app..."
           mkdir -p "$HOME/Applications"
-          rm -rf "$HOME/Applications/PhotoGIMP.app"
-          cp -r "${photogimp}/Applications/GIMP.app" "$HOME/Applications/PhotoGIMP.app"
-          chmod -R u+w "$HOME/Applications/PhotoGIMP.app"
+          sudo rm -rf "$HOME/Applications/PhotoGIMP.app"
+          sudo cp -r "${photogimp}/Applications/GIMP.app" "$HOME/Applications/PhotoGIMP.app"
+          sudo chown -R $USER:staff "$HOME/Applications/PhotoGIMP.app"
+          sudo chmod -R u+w "$HOME/Applications/PhotoGIMP.app"
         '';
       };
     };
