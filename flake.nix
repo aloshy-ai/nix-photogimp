@@ -1,5 +1,5 @@
 {
-  description = "Inkustrator customizations for Inkscape on macOS - provides Illustrator-like UI and shortcuts";
+  description = "PhotoGIMP customizations for GIMP on macOS - provides Photoshop-like UI and shortcuts";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -21,53 +21,53 @@
       systemConfig = {
         aarch64-darwin = {
           archName = "Apple Silicon";
-          inkscapeBinary = "${pkgs.inkscape}/bin/inkscape";
+          gimpBinary = "${pkgs.gimp}/bin/gimp";
         };
         x86_64-darwin = {
           archName = "Intel";
-          inkscapeBinary = "${pkgs.inkscape}/bin/inkscape";
+          gimpBinary = "${pkgs.gimp}/bin/gimp";
         };
       };
 
-      inkustratorSrcInfo = {
-        owner = "lucasgabmoreno";
-        repo = "inkustrator";
-        rev = "main";
-        sha256 = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      photoGimpSrcInfo = {
+        owner = "Diolinux";
+        repo = "PhotoGIMP";
+        rev = "1.0";
+        sha256 = "sha256-l+P0B3qw96P7XH07bezcUL6HTMyEHTHQMJrqzgxcrFI=";
       };
 
-      inkustratorSrc = pkgs.fetchFromGitHub inkustratorSrcInfo;
+      photoGimpSrc = pkgs.fetchFromGitHub photoGimpSrcInfo;
 
-      # Create a derivation for the Inkustrator config
-      inkustratorConfigSetup = pkgs.stdenv.mkDerivation {
-        name = "inkustrator-config-setup";
-        src = inkustratorSrc;
+      # Create a derivation for the PhotoGIMP config
+      photoGimpConfigSetup = pkgs.stdenv.mkDerivation {
+        name = "photogimp-config-setup";
+        src = photoGimpSrc;
 
         installPhase = ''
           mkdir -p $out/config
-          cp -r $src/config/* $out/config/
-          touch $out/config/.inkustrator_installed
+          cp -r $src/.var/app/org.gimp.GIMP/config/GIMP/2.10/* $out/config/
+          touch $out/config/.photogimp_installed
         '';
       };
 
       # Get the icon
-      inkustratorIcon = pkgs.stdenv.mkDerivation {
-        name = "inkustrator-icon";
-        src = inkustratorSrc;
+      photoGimpIcon = pkgs.stdenv.mkDerivation {
+        name = "photogimp-icon";
+        src = photoGimpSrc;
 
         installPhase = ''
           mkdir -p $out
-          cp $src/icon/inkustrator.png $out/icon.png
+          cp $src/.icons/photogimp.png $out/icon.png
         '';
       };
 
       # Create wrapper script
-      inkscape-wrapper = let
-        configDir = "$HOME/.inkustrator-config";
-        inkscapeConfigDir = "$HOME/Library/Application Support/org.inkscape.Inkscape";
+      gimp-wrapper = let
+        configDir = "$HOME/.photogimp-config";
+        gimpConfigDir = "$HOME/Library/Application Support/GIMP/2.10";
 
         # Create a script to handle config setup and cleanup
-        configScript = pkgs.writeScript "inkustrator-config" ''
+        configScript = pkgs.writeScript "photogimp-config" ''
           #!${pkgs.bash}/bin/bash
 
           # Check if we're running on the correct architecture
@@ -78,81 +78,83 @@
           fi
 
           # Ensure config directories exist
-          mkdir -p '${configDir}' "$(dirname '${inkscapeConfigDir}')"
+          mkdir -p '${configDir}' "$(dirname '${gimpConfigDir}')"
 
-          # Install Inkustrator config if needed
-          if [ ! -f '${configDir}/.inkustrator_installed' ] || [ -z "$(ls -A '${configDir}')" ]; then
-            echo "Setting up Inkustrator configuration..."
+          # Install PhotoGIMP config if needed
+          if [ ! -f '${configDir}/.photogimp_installed' ] || [ -z "$(ls -A '${configDir}')" ]; then
+            echo "Setting up PhotoGIMP configuration..."
             rm -rf '${configDir}'/*
-            cp -r ${inkustratorConfigSetup}/config/* '${configDir}/' 2>/dev/null || true
+            cp -r ${photoGimpConfigSetup}/config/* '${configDir}/' 2>/dev/null || true
           fi
 
           # Backup and link config
-          if [ -e '${inkscapeConfigDir}' ] && [ ! -L '${inkscapeConfigDir}' ]; then
-            mv '${inkscapeConfigDir}' '${inkscapeConfigDir}.backup.$$'
+          if [ -e '${gimpConfigDir}' ] && [ ! -L '${gimpConfigDir}' ]; then
+            mv '${gimpConfigDir}' '${gimpConfigDir}.backup.$$'
           fi
-          ln -sf '${configDir}' '${inkscapeConfigDir}'
+          ln -sf '${configDir}' '${gimpConfigDir}'
 
-          # Start Inkscape
+          # Start GIMP
           exec "$@"
         '';
       in
         pkgs.stdenv.mkDerivation {
-          name = "inkscape-wrapper";
+          name = "gimp-wrapper";
           buildInputs = [pkgs.makeWrapper];
 
           dontUnpack = true;
 
           installPhase = ''
-            mkdir -p $out/bin $out/share/inkustrator
-            makeWrapper ${configScript} $out/bin/inkscape \
-              --add-flags ${systemConfig.${system}.inkscapeBinary} \
+            mkdir -p $out/bin $out/share/photogimp
+            makeWrapper ${configScript} $out/bin/gimp \
+              --add-flags ${systemConfig.${system}.gimpBinary} \
               --set PATH ${lib.makeBinPath [pkgs.coreutils pkgs.bash]}
           '';
 
           meta = {
-            description = "Inkscape wrapper with Inkustrator configuration (${systemConfig.${system}.archName})";
-            mainProgram = "inkscape";
+            description = "GIMP wrapper with PhotoGIMP configuration (${systemConfig.${system}.archName})";
+            mainProgram = "gimp";
             platforms = [system];
           };
         };
 
-      # Create a custom package that combines Inkscape with our wrapper
-      inkustrator = pkgs.symlinkJoin {
-        name = "inkustrator";
+      # Create a custom package that combines GIMP with our wrapper
+      photogimp = pkgs.symlinkJoin {
+        name = "photogimp";
         paths = [
-          inkscape-wrapper
-          pkgs.inkscape
+          gimp-wrapper
+          pkgs.gimp
         ];
         postBuild = ''
-          if [ -f $out/bin/inkscape-bin ]; then
-            mv $out/bin/inkscape $out/bin/inkscape-original || true
-            cp ${inkscape-wrapper}/bin/inkscape $out/bin/inkscape
-            chmod +x $out/bin/inkscape
+          if [ -f $out/bin/gimp-bin ]; then
+            # Some systems might have gimp-bin as the actual binary
+            mv $out/bin/gimp $out/bin/gimp-original || true
+            cp ${gimp-wrapper}/bin/gimp $out/bin/gimp
+            chmod +x $out/bin/gimp
           fi
         '';
         meta = {
-          description = "Inkscape with Inkustrator configuration for an Illustrator-like experience (${systemConfig.${system}.archName})";
+          description = "GIMP with PhotoGIMP configuration for a Photoshop-like experience (${systemConfig.${system}.archName})";
           longDescription = ''
-            Inkustrator is a customization for Inkscape that makes it more familiar to Adobe Illustrator users.
+            PhotoGIMP is a patch for GIMP 2.10+ that makes it more familiar to Adobe Photoshop users.
             Features include:
-            - Tool organization mimicking Illustrator
-            - Illustrator-like keyboard shortcuts
-            - Custom workspace layout
-            - Enhanced productivity features
+            - Tool organization mimicking Photoshop
+            - Photoshop-like keyboard shortcuts for Windows
+            - New Python filters installed by default
+            - New splash screen
+            - Maximized canvas space
 
             This version is built for ${systemConfig.${system}.archName} Macs.
           '';
-          homepage = "https://github.com/lucasgabmoreno/inkustrator";
+          homepage = "https://github.com/Diolinux/PhotoGIMP";
           license = pkgs.lib.licenses.gpl3;
           platforms = [system];
-          mainProgram = "inkscape";
+          mainProgram = "gimp";
         };
       };
 
       # Create the app bundle
-      createInkustratorApp = pkgs.stdenv.mkDerivation {
-        name = "Inkustrator";
+      createPhotoGimpApp = pkgs.stdenv.mkDerivation {
+        name = "PhotoGIMP";
         version = "1.0";
 
         buildInputs = [
@@ -164,26 +166,26 @@
         dontUnpack = true;
 
         installPhase = ''
-          mkdir -p $out/Applications/Inkustrator.app/Contents/{MacOS,Resources}
+          mkdir -p $out/Applications/PhotoGIMP.app/Contents/{MacOS,Resources}
 
           # Convert PNG to ICNS
-          ${pkgs.imagemagick}/bin/convert ${inkustratorIcon}/icon.png -resize 512x512 icon.png
-          ${pkgs.libicns}/bin/png2icns $out/Applications/Inkustrator.app/Contents/Resources/appIcon.icns icon.png
+          ${pkgs.imagemagick}/bin/convert ${photoGimpIcon}/icon.png -resize 512x512 icon.png
+          ${pkgs.libicns}/bin/png2icns $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns icon.png
 
           # Create Info.plist with more macOS metadata
-          cat > $out/Applications/Inkustrator.app/Contents/Info.plist << EOF
+          cat > $out/Applications/PhotoGIMP.app/Contents/Info.plist << EOF
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
             <key>CFBundleExecutable</key>
-            <string>Inkustrator</string>
+            <string>PhotoGIMP</string>
             <key>CFBundleIconFile</key>
             <string>appIcon</string>
             <key>CFBundleIdentifier</key>
-            <string>org.inkscape.Inkustrator</string>
+            <string>org.gimp.PhotoGIMP</string>
             <key>CFBundleName</key>
-            <string>Inkustrator</string>
+            <string>PhotoGIMP</string>
             <key>CFBundlePackageType</key>
             <string>APPL</string>
             <key>CFBundleShortVersionString</key>
@@ -211,23 +213,23 @@
           EOF
 
           # Create launcher script
-          makeWrapper ${inkustrator}/bin/inkscape $out/Applications/Inkustrator.app/Contents/MacOS/Inkustrator \
-            --set PATH "${lib.makeBinPath [pkgs.inkscape]}" \
-            --set XDG_DATA_DIRS "${pkgs.inkscape}/share"
+          makeWrapper ${photogimp}/bin/gimp $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP \
+            --set PATH "${lib.makeBinPath [pkgs.gimp]}" \
+            --set XDG_DATA_DIRS "${pkgs.gimp}/share"
         '';
 
         meta = {
-          description = "Inkustrator.app bundle (${systemConfig.${system}.archName})";
+          description = "PhotoGIMP.app bundle (${systemConfig.${system}.archName})";
           platforms = [system];
-          homepage = "https://github.com/lucasgabmoreno/inkustrator";
+          homepage = "https://github.com/Diolinux/PhotoGIMP";
           license = pkgs.lib.licenses.gpl3;
         };
       };
     in {
       packages = {
-        inkustrator = inkustrator;
-        inkustratorApp = createInkustratorApp;
-        default = createInkustratorApp;
+        photogimp = photogimp;
+        photoGimpApp = createPhotoGimpApp;
+        default = createPhotoGimpApp;
       };
     })
     // {
@@ -239,16 +241,16 @@
         ...
       }: {
         options = {
-          programs.inkustrator = {
-            enable = lib.mkEnableOption "Inkustrator";
+          programs.photogimp = {
+            enable = lib.mkEnableOption "PhotoGIMP";
           };
         };
 
-        config = lib.mkIf config.programs.inkustrator.enable {
-          environment.systemPackages = [self.packages.${pkgs.system}.inkustrator];
+        config = lib.mkIf config.programs.photogimp.enable {
+          environment.systemPackages = [self.packages.${pkgs.system}.photogimp];
           system.build.applications = pkgs.lib.mkForce (pkgs.buildEnv {
             name = "applications";
-            paths = [self.packages.${pkgs.system}.inkustratorApp];
+            paths = [self.packages.${pkgs.system}.photoGimpApp];
             pathsToLink = ["/Applications"];
           });
         };
@@ -263,31 +265,31 @@
         ...
       }: {
         options = {
-          programs.inkustrator = {
-            enable = lib.mkEnableOption "Inkustrator";
+          programs.photogimp = {
+            enable = lib.mkEnableOption "PhotoGIMP";
           };
         };
 
-        config = lib.mkIf config.programs.inkustrator.enable {
-          home.packages = [self.packages.${pkgs.system}.inkustrator];
-          home.activation.installInkustrator = lib.hm.dag.entryAfter ["writeBoundary"] ''
-            echo "Checking Inkustrator.app installation..."
+        config = lib.mkIf config.programs.photogimp.enable {
+          home.packages = [self.packages.${pkgs.system}.photogimp];
+          home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
+            echo "Checking PhotoGIMP.app installation..."
 
             installApp() {
-              echo "Installing Inkustrator.app..."
-              /usr/bin/osascript -e "do shell script \"rm -rf /Applications/Inkustrator.app\" with administrator privileges"
-              /usr/bin/osascript -e "do shell script \"cp -rf ${self.packages.${pkgs.system}.inkustratorApp}/Applications/Inkustrator.app /Applications/ && chown -R $USER:staff /Applications/Inkustrator.app\" with administrator privileges"
+              echo "Installing PhotoGIMP.app..."
+              /usr/bin/osascript -e "do shell script \"rm -rf /Applications/PhotoGIMP.app\" with administrator privileges"
+              /usr/bin/osascript -e "do shell script \"cp -rf ${self.packages.${pkgs.system}.photoGimpApp}/Applications/PhotoGIMP.app /Applications/ && chown -R $USER:staff /Applications/PhotoGIMP.app\" with administrator privileges"
             }
 
-            if [ ! -e "/Applications/Inkustrator.app" ]; then
+            if [ ! -e "/Applications/PhotoGIMP.app" ]; then
               installApp
             else
               # Check if the app bundle is different
-              if ! diff -qr "${self.packages.${pkgs.system}.inkustratorApp}/Applications/Inkustrator.app" "/Applications/Inkustrator.app" &>/dev/null; then
-                echo "Updating Inkustrator.app..."
+              if ! diff -qr "${self.packages.${pkgs.system}.photoGimpApp}/Applications/PhotoGIMP.app" "/Applications/PhotoGIMP.app" &>/dev/null; then
+                echo "Updating PhotoGIMP.app..."
                 installApp
               else
-                echo "Inkustrator.app is up to date"
+                echo "PhotoGIMP.app is up to date"
               fi
             fi
           '';
