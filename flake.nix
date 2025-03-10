@@ -17,6 +17,18 @@
       pkgs = nixpkgs.legacyPackages.${system};
       lib = pkgs.lib;
 
+      # System-specific configuration
+      systemConfig = {
+        aarch64-darwin = {
+          archName = "Apple Silicon";
+          gimpBinary = "${pkgs.gimp}/bin/gimp";
+        };
+        x86_64-darwin = {
+          archName = "Intel";
+          gimpBinary = "${pkgs.gimp}/bin/gimp";
+        };
+      };
+
       photoGimpSrcInfo = {
         owner = "Diolinux";
         repo = "PhotoGIMP";
@@ -58,6 +70,13 @@
         configScript = pkgs.writeScript "photogimp-config" ''
           #!${pkgs.bash}/bin/bash
 
+          # Check if we're running on the correct architecture
+          if [ "$(uname -m)" = "arm64" ] && [ "${system}" != "aarch64-darwin" ]; then
+            echo "Warning: You are running on Apple Silicon but using the Intel version"
+          elif [ "$(uname -m)" = "x86_64" ] && [ "${system}" != "x86_64-darwin" ]; then
+            echo "Warning: You are running on Intel but using the Apple Silicon version"
+          fi
+
           # Ensure config directories exist
           mkdir -p '${configDir}' "$(dirname '${gimpConfigDir}')"
 
@@ -87,13 +106,14 @@
           installPhase = ''
             mkdir -p $out/bin $out/share/photogimp
             makeWrapper ${configScript} $out/bin/gimp \
-              --add-flags ${pkgs.gimp}/bin/gimp \
+              --add-flags ${systemConfig.${system}.gimpBinary} \
               --set PATH ${lib.makeBinPath [pkgs.coreutils pkgs.bash]}
           '';
 
           meta = {
-            description = "GIMP wrapper with PhotoGIMP configuration";
+            description = "GIMP wrapper with PhotoGIMP configuration (${systemConfig.${system}.archName})";
             mainProgram = "gimp";
+            platforms = [system];
           };
         };
 
@@ -113,7 +133,7 @@
           fi
         '';
         meta = {
-          description = "GIMP with PhotoGIMP configuration for a Photoshop-like experience";
+          description = "GIMP with PhotoGIMP configuration for a Photoshop-like experience (${systemConfig.${system}.archName})";
           longDescription = ''
             PhotoGIMP is a patch for GIMP 2.10+ that makes it more familiar to Adobe Photoshop users.
             Features include:
@@ -122,10 +142,12 @@
             - New Python filters installed by default
             - New splash screen
             - Maximized canvas space
+
+            This version is built for ${systemConfig.${system}.archName} Macs.
           '';
           homepage = "https://github.com/Diolinux/PhotoGIMP";
           license = pkgs.lib.licenses.gpl3;
-          platforms = pkgs.lib.platforms.darwin;
+          platforms = [system];
           mainProgram = "gimp";
         };
       };
@@ -178,6 +200,14 @@
             <true/>
             <key>NSRequiresAquaSystemAppearance</key>
             <true/>
+            <key>LSArchitecturePriority</key>
+            <array>
+              <string>${
+            if system == "aarch64-darwin"
+            then "arm64"
+            else "x86_64"
+          }</string>
+            </array>
           </dict>
           </plist>
           EOF
@@ -189,8 +219,8 @@
         '';
 
         meta = {
-          description = "PhotoGIMP.app bundle";
-          platforms = pkgs.lib.platforms.darwin;
+          description = "PhotoGIMP.app bundle (${systemConfig.${system}.archName})";
+          platforms = [system];
           homepage = "https://github.com/Diolinux/PhotoGIMP";
           license = pkgs.lib.licenses.gpl3;
         };
