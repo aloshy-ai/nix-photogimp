@@ -36,10 +36,15 @@
     };
 
     # Get the icon
-    photoGimpIcon = pkgs.runCommand "photogimp-icon" {} ''
-      mkdir -p $out
-      cp ${photoGimpSrc}/.icons/photogimp.png $out/icon.png
-    '';
+    photoGimpIcon = pkgs.stdenv.mkDerivation {
+      name = "photogimp-icon";
+      src = photoGimpSrc;
+
+      installPhase = ''
+        mkdir -p $out
+        cp $src/.icons/photogimp.png $out/icon.png
+      '';
+    };
 
     # Create wrapper script
     gimp-wrapper = pkgs.writeShellApplication {
