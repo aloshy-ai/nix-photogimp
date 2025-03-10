@@ -142,18 +142,12 @@
       };
 
       config = lib.mkIf config.programs.photogimp.enable {
-        environment.systemPackages = [photogimp];
-        imports = [mac-app-util.darwinModules.default];
-
-        # Use mac-app-util's app management
-        apps.photogimp = {
-          enable = true;
-          app = mac-app-util.lib.${system}.mkApp {
-            name = "PhotoGIMP";
-            target = "${photogimp}/bin/gimp";
-            icon = "${photoGimpIcon}/icon.png";
-            category = "public.app-category.graphics-design";
-          };
+        environment.systemPackages = [photogimp mac-app-util.packages.${system}.default];
+        system.activationScripts.installPhotoGIMP = {
+          text = ''
+            echo "Installing PhotoGIMP.app..."
+            ${mac-app-util.packages.${system}.default}/bin/mac-app-util mktrampoline "${photogimp}/bin/gimp" "/Applications/PhotoGIMP.app"
+          '';
         };
       };
     };
@@ -172,16 +166,11 @@
       };
 
       config = lib.mkIf config.programs.photogimp.enable {
-        home.packages = [photogimp];
-        imports = [mac-app-util.homeManagerModules.default];
-
-        # Use mac-app-util's app management
-        home.file."Applications/PhotoGIMP.app".source = mac-app-util.lib.${system}.mkApp {
-          name = "PhotoGIMP";
-          target = "${photogimp}/bin/gimp";
-          icon = "${photoGimpIcon}/icon.png";
-          category = "public.app-category.graphics-design";
-        };
+        home.packages = [photogimp mac-app-util.packages.${system}.default];
+        home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
+          echo "Installing PhotoGIMP.app..."
+          ${mac-app-util.packages.${system}.default}/bin/mac-app-util mktrampoline "${photogimp}/bin/gimp" "$HOME/Applications/PhotoGIMP.app"
+        '';
       };
     };
   in {
