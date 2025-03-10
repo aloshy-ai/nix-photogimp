@@ -47,59 +47,34 @@
     };
 
     # Create wrapper script
-    gimp-wrapper = pkgs.writeShellApplication {
-      name = "gimp";
-      runtimeInputs = [pkgs.gimp];
-      text = ''
-        set -e
+    gimp-wrapper = let
+      configDir = "$HOME/.photogimp-config";
+      gimpConfigDir = "$HOME/Library/Application Support/GIMP/2.10";
+    in
+      pkgs.stdenv.mkDerivation {
+        name = "gimp-wrapper";
+        buildInputs = [pkgs.makeWrapper];
 
-        # Create a temporary directory for PhotoGIMP config
-        PHOTOGIMP_CONFIG_DIR="$HOME/.photogimp-config"
-        GIMP_CONFIG_DIR="$HOME/Library/Application Support/GIMP/2.10"
+        dontUnpack = true;
 
-        # Ensure PhotoGIMP config directory exists
-        mkdir -p "$PHOTOGIMP_CONFIG_DIR"
+        installPhase = ''
+          mkdir -p $out/bin $out/share/photogimp
 
-        # Copy PhotoGIMP files to our managed location if not already there
-        if [ ! -f "$PHOTOGIMP_CONFIG_DIR/.photogimp_installed" ]; then
-          echo "Setting up PhotoGIMP configuration (one-time setup)..."
-          cp -r ${photoGimpConfigSetup}/config/* "$PHOTOGIMP_CONFIG_DIR/" 2>/dev/null || true
-        fi
+          # Create the wrapper script
+          makeWrapper ${pkgs.gimp}/bin/gimp $out/bin/gimp \
+            --run "mkdir -p '${configDir}'" \
+            --run "if [ ! -f '${configDir}/.photogimp_installed' ]; then cp -r ${photoGimpConfigSetup}/config/* '${configDir}/' 2>/dev/null || true; fi" \
+            --run "mkdir -p '$(dirname ${gimpConfigDir})'" \
+            --run "if [ -e '${gimpConfigDir}' ]; then mv '${gimpConfigDir}' '${gimpConfigDir}.backup.$$'; fi" \
+            --run "ln -sf '${configDir}' '${gimpConfigDir}'" \
+            --run "trap 'if [ -e \"${gimpConfigDir}.backup.$$\" ]; then rm -f \"${gimpConfigDir}\"; mv \"${gimpConfigDir}.backup.$$\" \"${gimpConfigDir}\"; fi' EXIT"
+        '';
 
-        # Create parent directory for GIMP config if it doesn't exist
-        mkdir -p "$(dirname "$GIMP_CONFIG_DIR")"
-
-        # Backup original config if it exists
-        ORIG_CONFIG_BACKUP=""
-        if [ -e "$GIMP_CONFIG_DIR" ]; then
-          ORIG_CONFIG_BACKUP="$GIMP_CONFIG_DIR.backup.$$"
-          echo "Temporarily backing up your original GIMP configuration..."
-          mv "$GIMP_CONFIG_DIR" "$ORIG_CONFIG_BACKUP"
-        fi
-
-        # Create symlink to our managed config
-        ln -sf "$PHOTOGIMP_CONFIG_DIR" "$GIMP_CONFIG_DIR"
-
-        echo "Launching GIMP with PhotoGIMP customizations..."
-
-        # Launch GIMP
-        gimp "$@" &
-        GIMP_PID=$!
-
-        # Wait for GIMP to exit
-        wait $GIMP_PID
-        EXIT_CODE=$?
-
-        # Restore original config if it exists
-        if [ -n "$ORIG_CONFIG_BACKUP" ]; then
-          echo "Restoring original GIMP configuration..."
-          rm -f "$GIMP_CONFIG_DIR"
-          mv "$ORIG_CONFIG_BACKUP" "$GIMP_CONFIG_DIR"
-        fi
-
-        exit $EXIT_CODE
-      '';
-    };
+        meta = {
+          description = "GIMP wrapper with PhotoGIMP configuration";
+          mainProgram = "gimp";
+        };
+      };
 
     # Create a custom package that combines GIMP with our wrapper
     photogimp = pkgs.symlinkJoin {
