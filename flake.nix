@@ -171,28 +171,14 @@
 
       config = lib.mkIf config.programs.photogimp.enable {
         environment.systemPackages = [photogimp];
-        system.activationScripts.postActivation.text = ''
-          # Create a temporary script to handle installation
-          INSTALL_SCRIPT=$(mktemp)
-          chmod +x "$INSTALL_SCRIPT"
-
-          cat > "$INSTALL_SCRIPT" << 'EOF'
-          #!/bin/bash
-          set -e
-          # Remove existing PhotoGIMP.app if it exists
-          /bin/rm -rf /Applications/PhotoGIMP.app
-          # Install PhotoGIMP.app
-          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app /Applications/
-          # Fix permissions
-          /usr/sbin/chown -R "$(/usr/bin/whoami):staff" /Applications/PhotoGIMP.app
-          EOF
-
-          # Run the script with elevated privileges
-          /usr/bin/osascript -e "do shell script \"$INSTALL_SCRIPT\" with administrator privileges"
-
-          # Clean up
-          rm -f "$INSTALL_SCRIPT"
-        '';
+        system.activationScripts.installPhotoGIMP = {
+          text = ''
+            echo "Installing PhotoGIMP.app..."
+            ${pkgs.rsync}/bin/rsync -a --delete "${createPhotoGimpApp}/Applications/PhotoGIMP.app/" "/Applications/PhotoGIMP.app/"
+            ${pkgs.coreutils}/bin/chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
+          '';
+          deps = [];
+        };
       };
     };
 
@@ -212,26 +198,9 @@
       config = lib.mkIf config.programs.photogimp.enable {
         home.packages = [photogimp];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
-          # Create a temporary script to handle installation
-          INSTALL_SCRIPT=$(mktemp)
-          chmod +x "$INSTALL_SCRIPT"
-
-          cat > "$INSTALL_SCRIPT" << 'EOF'
-          #!/bin/bash
-          set -e
-          # Remove existing PhotoGIMP.app if it exists
-          /bin/rm -rf /Applications/PhotoGIMP.app
-          # Install PhotoGIMP.app
-          /bin/cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app /Applications/
-          # Fix permissions
-          /usr/sbin/chown -R "$(/usr/bin/whoami):staff" /Applications/PhotoGIMP.app
-          EOF
-
-          # Run the script with elevated privileges
-          /usr/bin/osascript -e "do shell script \"$INSTALL_SCRIPT\" with administrator privileges"
-
-          # Clean up
-          rm -f "$INSTALL_SCRIPT"
+          echo "Installing PhotoGIMP.app..."
+          ${pkgs.rsync}/bin/rsync -a --delete "${createPhotoGimpApp}/Applications/PhotoGIMP.app/" "/Applications/PhotoGIMP.app/"
+          ${pkgs.coreutils}/bin/chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
         '';
       };
     };
