@@ -23,10 +23,11 @@
 
     photoGimpSrc = pkgs.fetchFromGitHub photoGimpSrcInfo;
 
-    # Extract config files
-    photoGimpConfig = pkgs.runCommand "photogimp-config" {} ''
-      mkdir -p $out
-      cp -r ${photoGimpSrc}/.var/app/org.gimp.GIMP/config/GIMP/2.10/* $out/
+    # Create a derivation for the PhotoGIMP config
+    photoGimpConfigSetup = pkgs.runCommand "photogimp-config-setup" {} ''
+      mkdir -p $out/config
+      cp -r ${photoGimpSrc}/.var/app/org.gimp.GIMP/config/GIMP/2.10/* $out/config/
+      touch $out/config/.photogimp_installed
     '';
 
     # Get the icon
@@ -52,39 +53,8 @@
         # Copy PhotoGIMP files to our managed location if not already there
         if [ ! -f "$PHOTOGIMP_CONFIG_DIR/.photogimp_installed" ]; then
           echo "Setting up PhotoGIMP configuration (one-time setup)..."
-          cp -r ${photoGimpConfig}/* "$PHOTOGIMP_CONFIG_DIR/" 2>/dev/null || true
-          touch "$PHOTOGIMP_CONFIG_DIR/.photogimp_installed"
+          cp -r ${photoGimpConfigSetup}/config/* "$PHOTOGIMP_CONFIG_DIR/" 2>/dev/null || true
         fi
-
-        # Create a temporary script that will clean up after GIMP exits
-        CLEANUP_SCRIPT=$(mktemp)
-        chmod +x "$CLEANUP_SCRIPT"
-
-        cat > "$CLEANUP_SCRIPT" << 'EOF'
-        #!/bin/bash
-        set -e
-
-        GIMP_CONFIG_DIR="$1"
-        ORIG_CONFIG_BACKUP="$2"
-        GIMP_PID="$3"
-
-        # Wait for GIMP to exit
-        wait "$GIMP_PID" 2>/dev/null || true
-
-        echo "Restoring original GIMP configuration..."
-
-        # Restore original config if it exists
-        if [ -d "$ORIG_CONFIG_BACKUP" ]; then
-          rm -rf "$GIMP_CONFIG_DIR" 2>/dev/null || true
-          mv "$ORIG_CONFIG_BACKUP" "$GIMP_CONFIG_DIR"
-        else
-          # Just remove the symlink
-          rm -f "$GIMP_CONFIG_DIR"
-        fi
-
-        # Remove this script
-        rm -f "$0"
-        EOF
 
         # Create parent directory for GIMP config if it doesn't exist
         mkdir -p "$(dirname "$GIMP_CONFIG_DIR")"
@@ -106,12 +76,18 @@
         gimp "$@" &
         GIMP_PID=$!
 
-        # Run cleanup script in background
-        "$CLEANUP_SCRIPT" "$GIMP_CONFIG_DIR" "$ORIG_CONFIG_BACKUP" $GIMP_PID &
-
         # Wait for GIMP to exit
         wait $GIMP_PID
-        exit $?
+        EXIT_CODE=$?
+
+        # Restore original config if it exists
+        if [ -n "$ORIG_CONFIG_BACKUP" ]; then
+          echo "Restoring original GIMP configuration..."
+          rm -f "$GIMP_CONFIG_DIR"
+          mv "$ORIG_CONFIG_BACKUP" "$GIMP_CONFIG_DIR"
+        fi
+
+        exit $EXIT_CODE
       '';
     };
 
