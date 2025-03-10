@@ -201,14 +201,14 @@
       };
 
       config = lib.mkIf config.programs.photogimp.enable {
-        home.packages = [photogimp mac-app-util.packages.${system}.default pkgs.polkit];
+        home.packages = [photogimp mac-app-util.packages.${system}.default pkgs.doas];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
           echo "Installing PhotoGIMP.app..."
           mkdir -p "$HOME/Applications"
-          ${pkgs.polkit}/bin/pkexec rm -rf "$HOME/Applications/PhotoGIMP.app"
-          ${pkgs.polkit}/bin/pkexec cp -r "${photogimp}/Applications/GIMP.app" "$HOME/Applications/PhotoGIMP.app"
-          ${pkgs.polkit}/bin/pkexec chown -R $USER:staff "$HOME/Applications/PhotoGIMP.app"
-          ${pkgs.polkit}/bin/pkexec chmod -R u+w "$HOME/Applications/PhotoGIMP.app"
+          ${pkgs.doas}/bin/doas rm -rf "$HOME/Applications/PhotoGIMP.app"
+          ${pkgs.doas}/bin/doas cp -r "${photogimp}/Applications/GIMP.app" "$HOME/Applications/PhotoGIMP.app"
+          ${pkgs.doas}/bin/doas chown -R $USER:staff "$HOME/Applications/PhotoGIMP.app"
+          ${pkgs.doas}/bin/doas chmod -R u+w "$HOME/Applications/PhotoGIMP.app"
         '';
       };
     };
