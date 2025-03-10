@@ -110,43 +110,51 @@
     };
 
     # Create the app bundle
-    createPhotoGimpApp = pkgs.runCommand "PhotoGIMP.app" {} ''
-      mkdir -p $out/Applications/PhotoGIMP.app/Contents/{MacOS,Resources}
+    createPhotoGimpApp = pkgs.stdenv.mkDerivation {
+      name = "PhotoGIMP";
 
-      # Create Info.plist
-      cat > $out/Applications/PhotoGIMP.app/Contents/Info.plist << EOF
-      <?xml version="1.0" encoding="UTF-8"?>
-      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-      <plist version="1.0">
-      <dict>
-        <key>CFBundleExecutable</key>
-        <string>PhotoGIMP</string>
-        <key>CFBundleIconFile</key>
-        <string>appIcon</string>
-        <key>CFBundleIdentifier</key>
-        <string>org.gimp.PhotoGIMP</string>
-        <key>CFBundleName</key>
-        <string>PhotoGIMP</string>
-        <key>CFBundlePackageType</key>
-        <string>APPL</string>
-        <key>CFBundleShortVersionString</key>
-        <string>1.0</string>
-        <key>LSMinimumSystemVersion</key>
-        <string>10.10.0</string>
-      </dict>
-      </plist>
-      EOF
+      buildInputs = [pkgs.makeWrapper];
+      dontUnpack = true;
 
-      # Create launcher script
-      cat > $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP << EOF
-      #!/bin/bash
-      exec ${photogimp}/bin/gimp "\$@"
-      EOF
-      chmod +x $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP
+      installPhase = ''
+        mkdir -p $out/Applications/PhotoGIMP.app/Contents/{MacOS,Resources}
 
-      # Copy icon
-      cp ${photoGimpIcon}/icon.png $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
-    '';
+        # Create Info.plist
+        cat > $out/Applications/PhotoGIMP.app/Contents/Info.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>CFBundleExecutable</key>
+          <string>PhotoGIMP</string>
+          <key>CFBundleIconFile</key>
+          <string>appIcon</string>
+          <key>CFBundleIdentifier</key>
+          <string>org.gimp.PhotoGIMP</string>
+          <key>CFBundleName</key>
+          <string>PhotoGIMP</string>
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+          <key>CFBundleShortVersionString</key>
+          <string>1.0</string>
+          <key>LSMinimumSystemVersion</key>
+          <string>10.10.0</string>
+        </dict>
+        </plist>
+        EOF
+
+        # Create launcher script
+        makeWrapper ${photogimp}/bin/gimp $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP
+
+        # Copy icon
+        cp ${photoGimpIcon}/icon.png $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
+      '';
+
+      meta = {
+        description = "PhotoGIMP.app bundle";
+        platforms = pkgs.lib.platforms.darwin;
+      };
+    };
 
     # Create Darwin module
     darwinModule = {
