@@ -180,7 +180,8 @@
         system.activationScripts.installPhotoGIMP = {
           text = ''
             echo "Installing PhotoGIMP.app..."
-            ${mac-app-util.packages.${system}.default}/bin/mac-app-util mktrampoline "${photogimp}/Applications/GIMP.app" "/Applications/PhotoGIMP.app"
+            rm -rf "/Applications/PhotoGIMP.app"
+            cp -r "${photogimp}/Applications/GIMP.app" "/Applications/PhotoGIMP.app"
           '';
         };
       };
@@ -203,7 +204,8 @@
         home.packages = [photogimp mac-app-util.packages.${system}.default];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
           echo "Installing PhotoGIMP.app..."
-          ${mac-app-util.packages.${system}.default}/bin/mac-app-util mktrampoline "${photogimp}/Applications/GIMP.app" "$HOME/Applications/PhotoGIMP.app"
+          rm -rf "$HOME/Applications/PhotoGIMP.app"
+          cp -r "${photogimp}/Applications/GIMP.app" "$HOME/Applications/PhotoGIMP.app"
         '';
       };
     };
