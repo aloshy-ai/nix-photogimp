@@ -13,6 +13,7 @@
   }: let
     system = "aarch64-darwin";
     pkgs = nixpkgs.legacyPackages.${system};
+    lib = pkgs.lib;
 
     photoGimpSrcInfo = {
       owner = "Diolinux";
@@ -50,6 +51,30 @@
     gimp-wrapper = let
       configDir = "$HOME/.photogimp-config";
       gimpConfigDir = "$HOME/Library/Application Support/GIMP/2.10";
+
+      # Create a script to handle config setup and cleanup
+      configScript = pkgs.writeScript "photogimp-config" ''
+        #!${pkgs.bash}/bin/bash
+
+        # Ensure config directories exist
+        mkdir -p '${configDir}' "$(dirname '${gimpConfigDir}')"
+
+        # Install PhotoGIMP config if needed
+        if [ ! -f '${configDir}/.photogimp_installed' ] || [ -z "$(ls -A '${configDir}')" ]; then
+          echo "Setting up PhotoGIMP configuration..."
+          rm -rf '${configDir}'/*
+          cp -r ${photoGimpConfigSetup}/config/* '${configDir}/' 2>/dev/null || true
+        fi
+
+        # Backup and link config
+        if [ -e '${gimpConfigDir}' ] && [ ! -L '${gimpConfigDir}' ]; then
+          mv '${gimpConfigDir}' '${gimpConfigDir}.backup.$$'
+        fi
+        ln -sf '${configDir}' '${gimpConfigDir}'
+
+        # Start GIMP
+        exec "$@"
+      '';
     in
       pkgs.stdenv.mkDerivation {
         name = "gimp-wrapper";
@@ -59,15 +84,9 @@
 
         installPhase = ''
           mkdir -p $out/bin $out/share/photogimp
-
-          # Create the wrapper script
-          makeWrapper ${pkgs.gimp}/bin/gimp $out/bin/gimp \
-            --run "mkdir -p '${configDir}'" \
-            --run "if [ ! -f '${configDir}/.photogimp_installed' ]; then cp -r ${photoGimpConfigSetup}/config/* '${configDir}/' 2>/dev/null || true; fi" \
-            --run "mkdir -p '$(dirname ${gimpConfigDir})'" \
-            --run "if [ -e '${gimpConfigDir}' ]; then mv '${gimpConfigDir}' '${gimpConfigDir}.backup.$$'; fi" \
-            --run "ln -sf '${configDir}' '${gimpConfigDir}'" \
-            --run "trap 'if [ -e \"${gimpConfigDir}.backup.$$\" ]; then rm -f \"${gimpConfigDir}\"; mv \"${gimpConfigDir}.backup.$$\" \"${gimpConfigDir}\"; fi' EXIT"
+          makeWrapper ${configScript} $out/bin/gimp \
+            --add-flags ${pkgs.gimp}/bin/gimp \
+            --set PATH ${lib.makeBinPath [pkgs.coreutils pkgs.bash]}
         '';
 
         meta = {
@@ -112,14 +131,24 @@
     # Create the app bundle
     createPhotoGimpApp = pkgs.stdenv.mkDerivation {
       name = "PhotoGIMP";
+      version = "1.0";
 
-      buildInputs = [pkgs.makeWrapper];
+      buildInputs = [
+        pkgs.makeWrapper
+        pkgs.imagemagick
+        pkgs.libicns
+      ];
+
       dontUnpack = true;
 
       installPhase = ''
         mkdir -p $out/Applications/PhotoGIMP.app/Contents/{MacOS,Resources}
 
-        # Create Info.plist
+        # Convert PNG to ICNS
+        ${pkgs.imagemagick}/bin/convert ${photoGimpIcon}/icon.png -resize 512x512 icon.png
+        ${pkgs.libicns}/bin/png2icns $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns icon.png
+
+        # Create Info.plist with more macOS metadata
         cat > $out/Applications/PhotoGIMP.app/Contents/Info.plist << EOF
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -139,20 +168,29 @@
           <string>1.0</string>
           <key>LSMinimumSystemVersion</key>
           <string>10.10.0</string>
+          <key>CFBundleVersion</key>
+          <string>1.0</string>
+          <key>LSApplicationCategoryType</key>
+          <string>public.app-category.graphics-design</string>
+          <key>NSHighResolutionCapable</key>
+          <true/>
+          <key>NSRequiresAquaSystemAppearance</key>
+          <true/>
         </dict>
         </plist>
         EOF
 
         # Create launcher script
-        makeWrapper ${photogimp}/bin/gimp $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP
-
-        # Copy icon
-        cp ${photoGimpIcon}/icon.png $out/Applications/PhotoGIMP.app/Contents/Resources/appIcon.icns
+        makeWrapper ${photogimp}/bin/gimp $out/Applications/PhotoGIMP.app/Contents/MacOS/PhotoGIMP \
+          --set PATH "${lib.makeBinPath [pkgs.gimp]}" \
+          --set XDG_DATA_DIRS "${pkgs.gimp}/share"
       '';
 
       meta = {
         description = "PhotoGIMP.app bundle";
         platforms = pkgs.lib.platforms.darwin;
+        homepage = "https://github.com/Diolinux/PhotoGIMP";
+        license = pkgs.lib.licenses.gpl3;
       };
     };
 
@@ -195,11 +233,25 @@
       config = lib.mkIf config.programs.photogimp.enable {
         home.packages = [photogimp];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
-          echo "Installing PhotoGIMP.app..."
-          if [ -e "/Applications/PhotoGIMP.app" ]; then
+          echo "Checking PhotoGIMP.app installation..."
+
+          installApp() {
+            echo "Installing PhotoGIMP.app..."
             /usr/bin/osascript -e "do shell script \"rm -rf /Applications/PhotoGIMP.app\" with administrator privileges"
+            /usr/bin/osascript -e "do shell script \"cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app /Applications/ && chown -R $USER:staff /Applications/PhotoGIMP.app\" with administrator privileges"
+          }
+
+          if [ ! -e "/Applications/PhotoGIMP.app" ]; then
+            installApp
+          else
+            # Check if the app bundle is different
+            if ! diff -qr "${createPhotoGimpApp}/Applications/PhotoGIMP.app" "/Applications/PhotoGIMP.app" &>/dev/null; then
+              echo "Updating PhotoGIMP.app..."
+              installApp
+            else
+              echo "PhotoGIMP.app is up to date"
+            fi
           fi
-          /usr/bin/osascript -e "do shell script \"cp -rf ${createPhotoGimpApp}/Applications/PhotoGIMP.app /Applications/ && chown -R $USER:staff /Applications/PhotoGIMP.app\" with administrator privileges"
         '';
       };
     };
