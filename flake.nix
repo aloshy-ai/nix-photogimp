@@ -24,11 +24,16 @@
     photoGimpSrc = pkgs.fetchFromGitHub photoGimpSrcInfo;
 
     # Create a derivation for the PhotoGIMP config
-    photoGimpConfigSetup = pkgs.runCommand "photogimp-config-setup" {} ''
-      mkdir -p $out/config
-      cp -r ${photoGimpSrc}/.var/app/org.gimp.GIMP/config/GIMP/2.10/* $out/config/
-      touch $out/config/.photogimp_installed
-    '';
+    photoGimpConfigSetup = pkgs.stdenv.mkDerivation {
+      name = "photogimp-config-setup";
+      src = photoGimpSrc;
+
+      installPhase = ''
+        mkdir -p $out/config
+        cp -r $src/.var/app/org.gimp.GIMP/config/GIMP/2.10/* $out/config/
+        touch $out/config/.photogimp_installed
+      '';
+    };
 
     # Get the icon
     photoGimpIcon = pkgs.runCommand "photogimp-icon" {} ''
