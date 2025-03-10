@@ -174,8 +174,8 @@
         system.activationScripts.installPhotoGIMP = {
           text = ''
             echo "Installing PhotoGIMP.app..."
-            ${pkgs.rsync}/bin/rsync -a --delete "${createPhotoGimpApp}/Applications/PhotoGIMP.app/" "/Applications/PhotoGIMP.app/"
-            ${pkgs.coreutils}/bin/chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
+            sudo ${pkgs.rsync}/bin/rsync -a --delete "${createPhotoGimpApp}/Applications/PhotoGIMP.app/" "/Applications/PhotoGIMP.app/"
+            sudo ${pkgs.coreutils}/bin/chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
           '';
           deps = [];
         };
@@ -199,8 +199,8 @@
         home.packages = [photogimp];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
           echo "Installing PhotoGIMP.app..."
-          ${pkgs.rsync}/bin/rsync -a --delete "${createPhotoGimpApp}/Applications/PhotoGIMP.app/" "/Applications/PhotoGIMP.app/"
-          ${pkgs.coreutils}/bin/chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
+          sudo ${pkgs.rsync}/bin/rsync -a --delete "${createPhotoGimpApp}/Applications/PhotoGIMP.app/" "/Applications/PhotoGIMP.app/"
+          sudo ${pkgs.coreutils}/bin/chown -R "$USER:staff" "/Applications/PhotoGIMP.app"
         '';
       };
     };
