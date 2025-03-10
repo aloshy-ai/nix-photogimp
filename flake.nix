@@ -102,6 +102,7 @@
         gimp-wrapper
         pkgs.gimp
       ];
+      nativeBuildInputs = [pkgs.makeWrapper];
       postBuild = ''
         if [ -f $out/bin/gimp-bin ]; then
           # Some systems might have gimp-bin as the actual binary
@@ -109,6 +110,39 @@
           cp ${gimp-wrapper}/bin/gimp $out/bin/gimp
           chmod +x $out/bin/gimp
         fi
+
+        # Create GIMP.app in our output
+        mkdir -p $out/Applications/GIMP.app/Contents/MacOS
+        mkdir -p $out/Applications/GIMP.app/Contents/Resources
+
+        # Create Info.plist
+        cat > $out/Applications/GIMP.app/Contents/Info.plist << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>CFBundleExecutable</key>
+          <string>gimp</string>
+          <key>CFBundleIconFile</key>
+          <string>icon.png</string>
+          <key>CFBundleIdentifier</key>
+          <string>org.gimp.GIMP</string>
+          <key>CFBundleName</key>
+          <string>GIMP</string>
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+          <key>CFBundleShortVersionString</key>
+          <string>2.10.38</string>
+        </dict>
+        </plist>
+        EOF
+
+        # Copy icon
+        cp ${photoGimpIcon}/icon.png $out/Applications/GIMP.app/Contents/Resources/
+
+        # Create executable
+        makeWrapper "$out/bin/gimp" "$out/Applications/GIMP.app/Contents/MacOS/gimp" \
+          --set PATH ${lib.makeBinPath [pkgs.coreutils pkgs.bash]}
       '';
       meta = {
         description = "GIMP with PhotoGIMP configuration for a Photoshop-like experience";
@@ -146,7 +180,7 @@
         system.activationScripts.installPhotoGIMP = {
           text = ''
             echo "Installing PhotoGIMP.app..."
-            ${mac-app-util.packages.${system}.default}/bin/mac-app-util mkapp "${photogimp}/bin/gimp" "/Applications/PhotoGIMP.app" --icon "${photoGimpIcon}/icon.png"
+            ${mac-app-util.packages.${system}.default}/bin/mac-app-util mktrampoline "${photogimp}/Applications/GIMP.app" "/Applications/PhotoGIMP.app"
           '';
         };
       };
@@ -169,7 +203,7 @@
         home.packages = [photogimp mac-app-util.packages.${system}.default];
         home.activation.installPhotoGIMP = lib.hm.dag.entryAfter ["writeBoundary"] ''
           echo "Installing PhotoGIMP.app..."
-          ${mac-app-util.packages.${system}.default}/bin/mac-app-util mkapp "${photogimp}/bin/gimp" "$HOME/Applications/PhotoGIMP.app" --icon "${photoGimpIcon}/icon.png"
+          ${mac-app-util.packages.${system}.default}/bin/mac-app-util mktrampoline "${photogimp}/Applications/GIMP.app" "$HOME/Applications/PhotoGIMP.app"
         '';
       };
     };
